@@ -254,9 +254,9 @@ describe('OauthService', () => {
 			expect(credentialsHelper.applyDefaultsAndOverwrites).toHaveBeenCalledWith(
 				additionalData,
 				decryptedData,
-				credential,
 				credential.type,
 				'internal',
+				undefined,
 				undefined,
 				undefined,
 			);
@@ -994,9 +994,9 @@ describe('OauthService', () => {
 			expect(credentialsHelper.applyDefaultsAndOverwrites).toHaveBeenCalledWith(
 				mockAdditionalData,
 				{ clientId: 'client-id' },
-				credential,
 				credential.type,
 				'internal',
+				undefined,
 				undefined,
 				undefined,
 			);
@@ -1020,9 +1020,9 @@ describe('OauthService', () => {
 			expect(credentialsHelper.applyDefaultsAndOverwrites).toHaveBeenCalledWith(
 				mockAdditionalData,
 				{ clientId: 'client-id', scope: 'old-scope' },
-				credential,
 				credential.type,
 				'internal',
+				undefined,
 				undefined,
 				undefined,
 			);
@@ -1046,9 +1046,9 @@ describe('OauthService', () => {
 			expect(credentialsHelper.applyDefaultsAndOverwrites).toHaveBeenCalledWith(
 				mockAdditionalData,
 				{ clientId: 'client-id', scope: 'old-scope' },
-				credential,
 				credential.type,
 				'internal',
+				undefined,
 				undefined,
 				undefined,
 			);
