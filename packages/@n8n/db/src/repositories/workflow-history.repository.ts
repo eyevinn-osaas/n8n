@@ -1,6 +1,5 @@
 import { Service } from '@n8n/di';
 import { DataSource, In, LessThan, Repository } from '@n8n/typeorm';
-import { DateUtils } from '@n8n/typeorm/util/DateUtils';
 import { GroupedWorkflowHistory, groupWorkflows, RULES } from 'n8n-workflow';
 
 import { WorkflowHistory, WorkflowEntity } from '../entities';
@@ -48,9 +47,6 @@ export class WorkflowHistoryRepository extends Repository<WorkflowHistory> {
 			.execute();
 	}
 
-	private minimumCompactAgeHours = 24;
-	private compactingTimeRangeDays = 8;
-
 	private makeSkipActiveAndNamedVersionsRule(activeVersions: string[]) {
 		return (
 			prev: GroupedWorkflowHistory<WorkflowHistory>,
@@ -64,14 +60,17 @@ export class WorkflowHistoryRepository extends Repository<WorkflowHistory> {
 	async getWorkflowIdsInRange(startDate: Date, endDate: Date) {
 		const result = await this.manager
 			.createQueryBuilder(WorkflowHistory, 'wh')
-			.select('DISTINCT wh.workflowId')
+			.select('wh.workflowId')
+			.distinct(true)
 			.where('wh.createdAt <= :endDate', {
-				endDate: DateUtils.mixedDateToUtcDatetimeString(endDate),
+				endDate,
 			})
 			.andWhere('wh.createdAt >= :startDate', {
-				startDate: DateUtils.mixedDateToUtcDatetimeString(startDate),
+				startDate,
 			})
+			.groupBy('wh.workflowId')
 			.getMany();
+
 		return result.map((x) => x.workflowId);
 	}
 
@@ -87,10 +86,10 @@ export class WorkflowHistoryRepository extends Repository<WorkflowHistory> {
 			.createQueryBuilder(WorkflowHistory, 'wh')
 			.where('wh.workflowId == :workflowId', { workflowId })
 			.andWhere('wh.createdAt <= :endDate', {
-				endDate: DateUtils.mixedDateToUtcDatetimeString(endDate),
+				endDate,
 			})
 			.andWhere('wh.createdAt >= :startDate', {
-				startDate: DateUtils.mixedDateToUtcDatetimeString(startDate),
+				startDate,
 			})
 			.orderBy('wh.createdAt', 'ASC')
 			.getMany();

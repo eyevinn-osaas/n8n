@@ -5,8 +5,8 @@ import type { IConnections, INode, IWorkflowBase } from '.';
 
 export type WorkflowDiffBase = Omit<
 	IWorkflowBase,
-	'id' | 'active' | 'activeVersionId' | 'isArchived'
->;
+	'id' | 'active' | 'activeVersionId' | 'isArchived' | 'name'
+> & { name: string | null };
 
 export type DiffableNode = Pick<INode, 'id' | 'parameters' | 'name'>;
 export type DiffableWorkflow<N extends DiffableNode = DiffableNode> = {
