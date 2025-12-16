@@ -4,7 +4,7 @@ import { DbConnection, WorkflowHistoryRepository } from '@n8n/db';
 import { OnLeaderStepdown, OnLeaderTakeover, OnShutdown } from '@n8n/decorators';
 import { Service } from '@n8n/di';
 import { InstanceSettings } from 'n8n-core';
-import { ensureError } from 'n8n-workflow';
+import { ensureError, sleep } from 'n8n-workflow';
 import { strict } from 'node:assert';
 
 /**
@@ -80,13 +80,16 @@ export class WorkflowHistoryCompactionService {
 	 * Delete all soft-deleted executions and their binary data.
 	 */
 	private async compactHistories(): Promise<void> {
-		const startDate = new Date();
-		startDate.setHours(
-			startDate.getHours() - this.minimumCompactAgeHours - this.compactingTimeRangeHours,
-		);
+		const now = Date.now();
 
-		const endDate = new Date();
-		endDate.setHours(endDate.getHours() - this.minimumCompactAgeHours);
+		const startDate = new Date(
+			now -
+				(this.minimumCompactAgeHours + this.compactingTimeRangeHours) * Time.hours.toMilliseconds,
+		);
+		const endDate = new Date(now - this.minimumCompactAgeHours * Time.hours.toMilliseconds);
+
+		const startIso = startDate.toISOString();
+		const endIso = endDate.toISOString();
 
 		const workflowIds = await this.workflowHistoryRepository.getWorkflowIdsInRange(
 			startDate,
@@ -98,8 +101,7 @@ export class WorkflowHistoryCompactionService {
 		);
 
 		let seenSum = 0;
-		for (let i = 0; i < workflowIds.length; ++i) {
-			const workflowId = workflowIds[i];
+		for (const [index, workflowId] of workflowIds.entries()) {
 			try {
 				const { seen, deleted } = await this.workflowHistoryRepository.pruneHistory(
 					workflowId,
@@ -109,7 +111,7 @@ export class WorkflowHistoryCompactionService {
 				seenSum += seen;
 
 				this.logger.debug(
-					`Deleted ${deleted} of ${seen} versions of workflow ${workflowId} between ${startDate.toISOString()} and ${endDate.toISOString()}`,
+					`Deleted ${deleted} of ${seen} versions of workflow ${workflowId} between ${startIso} and ${endIso}`,
 				);
 			} catch (error) {
 				this.logger.error(`Failed to prune version history of workflow ${workflowId}`, {
@@ -122,9 +124,9 @@ export class WorkflowHistoryCompactionService {
 					`Encountered more than ${this.batchSize} workflow versions, waiting ${this.batchDelayMs * Time.milliseconds.toSeconds} second(s) before continuing.`,
 				);
 				this.logger.warn(
-					`Compacted ${i} of ${workflowIds.length} workflows with versions between ${startDate.toISOString()} and ${endDate.toISOString()}`,
+					`Compacted ${index} of ${workflowIds.length} workflows with versions between ${startIso} and ${endIso}`,
 				);
-				await new Promise((res) => setTimeout(res, this.batchDelayMs));
+				await sleep(this.batchDelayMs);
 				seenSum = 0;
 			}
 		}
