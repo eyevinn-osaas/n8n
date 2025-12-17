@@ -157,7 +157,7 @@ export async function createWorkflowWithTrigger(
 					id: 'uuid-1',
 					parameters: {},
 					name: 'Start',
-					type: 'n8n-nodes-base.start',
+					type: 'n8n-nodes-base.manualTrigger',
 					typeVersion: 1,
 					position: [240, 300],
 				},
@@ -202,8 +202,7 @@ export async function createWorkflowWithHistory(
 	const workflow = await createWorkflow(attributes, userOrProject);
 
 	// Create workflow history for the initial version
-	const user = userOrProject instanceof User ? userOrProject : undefined;
-	await createWorkflowHistory(workflow, user, withPublishHistory);
+	await createWorkflowHistory(workflow, userOrProject, withPublishHistory);
 
 	return workflow;
 }
@@ -241,6 +240,8 @@ export const getWorkflowById = async (id: string) =>
  * Create a workflow history record for a workflow
  * @param workflow workflow to create history for
  * @param user user who created the version (optional)
+ * @param withPublishHistory publish history to create (optional)
+ * @param autosaved whether this is an autosave (optional)
  */
 export async function createWorkflowHistory(
 	workflow: IWorkflowDb,
@@ -248,12 +249,20 @@ export async function createWorkflowHistory(
 	withPublishHistory?: Partial<WorkflowPublishHistory>,
 	overrides: Partial<WorkflowHistory> = {},
 ): Promise<void> {
+	const authors =
+		userOrProject instanceof User
+			? userOrProject.firstName && userOrProject.lastName
+				? `${userOrProject.firstName} ${userOrProject.lastName}`
+				: 'Test User'
+			: 'Test User';
+
 	await Container.get(WorkflowHistoryRepository).insert({
 		workflowId: workflow.id,
 		versionId: workflow.versionId,
 		nodes: workflow.nodes,
 		connections: workflow.connections,
-		authors: userOrProject instanceof User ? userOrProject.email : 'test@example.com',
+		authors,
+		autosaved: false,
 		...overrides,
 	});
 
@@ -303,5 +312,6 @@ export async function createActiveWorkflow(
 	await setActiveVersion(workflow.id, workflow.versionId);
 
 	workflow.activeVersionId = workflow.versionId;
+
 	return workflow;
 }
