@@ -23,7 +23,12 @@ import { getFormTriggerNode, renderFormNode } from './utils/formNodeUtils';
 import { prepareFormReturnItem, resolveRawData } from './utils/utils';
 import { configureWaitTillDate } from '../../utils/sendAndWait/configureWaitTillDate.util';
 import { limitWaitTimeProperties } from '../../utils/sendAndWait/descriptions';
-import { formDescription, formFields, formTitle } from '../Form/common.descriptions';
+import {
+	formDescription,
+	formFields,
+	formFieldsDynamic,
+	formTitle,
+} from '../Form/common.descriptions';
 
 const waitTimeProperties: INodeProperties[] = [
 	{
@@ -81,6 +86,7 @@ export const formFieldsProperties: INodeProperties[] = [
 		},
 	},
 	{ ...formFields, displayOptions: { show: { defineForm: ['fields'] } } },
+	{ ...formFieldsDynamic, displayOptions: { show: { defineForm: ['fields'] } } },
 ];
 
 const pageProperties = updateDisplayOptions(
@@ -270,6 +276,11 @@ export class Form extends Node {
 		// since trigger and node are sharing descriptions and logic we need to sync the versions
 		// and keep them aligned in both nodes
 		version: [1, 2.3, 2.4, 2.5],
+		features: {
+			useDynamicAttributes: {
+				'@version': [{ _cnd: { gte: 2.5 } }],
+			},
+		},
 		description: 'Generate webforms in n8n and pass their responses to the workflow',
 		defaults: {
 			name: 'Form',

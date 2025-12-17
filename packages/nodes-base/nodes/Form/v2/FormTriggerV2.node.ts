@@ -13,6 +13,7 @@ import {
 	appendAttributionToForm,
 	formDescription,
 	formFields,
+	formFieldsDynamic,
 	formRespondMode,
 	formTitle,
 	formTriggerPanel,
@@ -108,6 +109,7 @@ const descriptionV2: INodeTypeDescription = {
 		formTitle,
 		formDescription,
 		formFields,
+		formFieldsDynamic,
 		{ ...formRespondMode, displayOptions: { show: { '@version': [{ _cnd: { lte: 2.1 } }] } } },
 		{
 			...formRespondMode,
