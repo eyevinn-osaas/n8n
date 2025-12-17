@@ -84,7 +84,7 @@ export class WorkflowHistoryRepository extends Repository<WorkflowHistory> {
 	): Promise<{ seen: number; deleted: number }> {
 		const workflows = await this.manager
 			.createQueryBuilder(WorkflowHistory, 'wh')
-			.where('wh.workflowId == :workflowId', { workflowId })
+			.where('wh.workflowId = :workflowId', { workflowId })
 			.andWhere('wh.createdAt <= :endDate', {
 				endDate,
 			})
