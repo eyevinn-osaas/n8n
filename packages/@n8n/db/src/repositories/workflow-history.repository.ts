@@ -60,7 +60,7 @@ export class WorkflowHistoryRepository extends Repository<WorkflowHistory> {
 	async getWorkflowIdsInRange(startDate: Date, endDate: Date) {
 		const result = await this.manager
 			.createQueryBuilder(WorkflowHistory, 'wh')
-			.select('wh.workflowId')
+			.select('wh.workflowId', 'workflowId')
 			.distinct(true)
 			.where('wh.createdAt <= :endDate', {
 				endDate,
