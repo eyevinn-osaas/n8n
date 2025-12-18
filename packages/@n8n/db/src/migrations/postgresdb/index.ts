@@ -47,6 +47,7 @@ import { AddWorkflowVersionColumn1761047826451 } from './1761047826451-AddWorkfl
 import { ChangeDependencyInfoToJson1761655473000 } from './1761655473000-ChangeDependencyInfoToJson';
 import { ChangeDefaultForIdInUserTable1762771264000 } from './1762771264000-ChangeDefaultForIdInUserTable';
 import { ConvertAgentIdToUuid1765804780000 } from './1765804780000-ConvertAgentIdToUuid';
+import { AddChatMessageIndices1766068346315 } from './1766068346315-AddChatMessageIndices';
 import { CreateLdapEntities1674509946020 } from '../common/1674509946020-CreateLdapEntities';
 import { PurgeInvalidWorkflowConnections1675940580449 } from '../common/1675940580449-PurgeInvalidWorkflowConnections';
 import { RemoveResetPasswordColumns1690000000030 } from '../common/1690000000030-RemoveResetPasswordColumns';
@@ -263,4 +264,5 @@ export const postgresMigrations: Migration[] = [
 	ConvertAgentIdToUuid1765804780000,
 	AddAgentIdForeignKeys1765886667897,
 	AddWorkflowVersionIdToExecutionData1765892199653,
+	AddChatMessageIndices1766068346315,
 ];
