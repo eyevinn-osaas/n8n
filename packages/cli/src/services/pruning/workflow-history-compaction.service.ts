@@ -76,9 +76,6 @@ export class WorkflowHistoryCompactionService {
 		this.stopCompacting();
 	}
 
-	/**
-	 * Delete all soft-deleted executions and their binary data.
-	 */
 	private async compactHistories(): Promise<void> {
 		const now = Date.now();
 
