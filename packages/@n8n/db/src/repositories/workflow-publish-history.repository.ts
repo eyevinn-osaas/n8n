@@ -30,7 +30,7 @@ export class WorkflowPublishHistoryRepository extends Repository<WorkflowPublish
 			.createQueryBuilder(WorkflowPublishHistory, 'wph')
 			.select('wph.versionId')
 			.distinct(true)
-			.where('wph.workflowId == :workflowId', { workflowId })
+			.where('wph.workflowId = :workflowId', { workflowId })
 			.getMany();
 	}
 }
