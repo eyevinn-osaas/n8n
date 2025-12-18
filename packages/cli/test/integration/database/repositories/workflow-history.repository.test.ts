@@ -1,7 +1,12 @@
-import { createWorkflowHistory, createWorkflowWithHistory, testDb } from '@n8n/backend-test-utils';
+import {
+	createWorkflow,
+	createWorkflowHistory,
+	createWorkflowWithHistory,
+	testDb,
+} from '@n8n/backend-test-utils';
 import { WorkflowHistoryRepository } from '@n8n/db';
 import { Container } from '@n8n/di';
-import { sleep, type INode } from 'n8n-workflow';
+import { type INode } from 'n8n-workflow';
 import { v4 as uuid } from 'uuid';
 
 describe('WorkflowHistoryRepository', () => {
@@ -175,42 +180,48 @@ describe('WorkflowHistoryRepository', () => {
 	});
 	describe('getWorkflowIdsInRange', () => {
 		it('should return versions in range', async () => {
-			const workflowA = await createWorkflowWithHistory({
-				versionId: uuid(),
-				nodes: [{ ...testNode1, parameters: { a: 'a' } }],
-			});
-			await sleep(1000);
-			const beforeV2 = new Date();
+			const now = Date.now();
+			const twoSecondsAhead = new Date(now + 2 * 1000);
+			const fourSecondsAhead = new Date(now + 4 * 1000);
+			const sixSecondsAhead = new Date(now + 6 * 1000);
 
-			await createWorkflowHistory({
-				...workflowA,
-				versionId: uuid(),
-				nodes: [{ ...testNode1, parameters: { a: 'abcd' } }],
-			});
-			await sleep(1000);
-			const beforeB = new Date();
-			await sleep(1000);
-
-			const workflowB = await createWorkflowWithHistory({
+			const workflowA = await createWorkflow({
 				versionId: uuid(),
 				nodes: [{ ...testNode1, parameters: { a: 'a' } }],
 			});
 
-			await sleep(1000);
-			const afterB = new Date();
+			// Create workflow history for the initial version
+			await createWorkflowHistory(workflowA, undefined, undefined, { createdAt: new Date(now) });
+
+			await createWorkflowHistory(
+				{
+					...workflowA,
+					versionId: uuid(),
+					nodes: [{ ...testNode1, parameters: { a: 'abcd' } }],
+				},
+				undefined,
+				undefined,
+				{ createdAt: twoSecondsAhead },
+			);
+
+			const workflowB = await createWorkflow({
+				versionId: uuid(),
+				nodes: [{ ...testNode1, parameters: { a: 'a' } }],
+			});
+			await createWorkflowHistory(workflowB, undefined, undefined, { createdAt: fourSecondsAhead });
 
 			// ACT
 			const repository = Container.get(WorkflowHistoryRepository);
 			{
-				const ids = await repository.getWorkflowIdsInRange(afterB, new Date());
+				const ids = await repository.getWorkflowIdsInRange(sixSecondsAhead, sixSecondsAhead);
 				expect(ids).toEqual([]);
 			}
 			{
-				const ids = await repository.getWorkflowIdsInRange(beforeB, afterB);
+				const ids = await repository.getWorkflowIdsInRange(fourSecondsAhead, sixSecondsAhead);
 				expect(ids).toEqual([workflowB.id]);
 			}
 			{
-				const ids = await repository.getWorkflowIdsInRange(beforeV2, afterB);
+				const ids = await repository.getWorkflowIdsInRange(twoSecondsAhead, sixSecondsAhead);
 				expect(ids).toEqual(expect.arrayContaining([workflowA.id, workflowB.id]));
 			}
 		});
