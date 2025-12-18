@@ -1,10 +1,10 @@
 import { mockLogger } from '@n8n/backend-test-utils';
+import type { WorkflowHistoryCompactionConfig } from '@n8n/config';
 import type { DbConnection } from '@n8n/db';
 import { mock } from 'jest-mock-extended';
 import type { InstanceSettings } from 'n8n-core';
 
 import { WorkflowHistoryCompactionService } from '../workflow-history-compaction.service';
-import { WorkflowHistoryCompactionConfig } from '@n8n/config';
 
 describe('WorkflowHistoryCompactionService', () => {
 	const dbConnection = mock<DbConnection>({

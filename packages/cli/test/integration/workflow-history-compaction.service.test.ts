@@ -1,4 +1,5 @@
 import { mockLogger, createWorkflow, testDb, createWorkflowHistory } from '@n8n/backend-test-utils';
+import { GlobalConfig } from '@n8n/config';
 import { Time } from '@n8n/constants';
 import { DbConnection, WorkflowHistoryRepository } from '@n8n/db';
 import { Container } from '@n8n/di';
@@ -8,7 +9,6 @@ import { sleep, type INode } from 'n8n-workflow';
 import { v4 as uuid } from 'uuid';
 
 import { WorkflowHistoryCompactionService } from '@/services/pruning/workflow-history-compaction.service';
-import { GlobalConfig } from '@n8n/config';
 
 describe('compacting cycle', () => {
 	let compactionService: WorkflowHistoryCompactionService;
