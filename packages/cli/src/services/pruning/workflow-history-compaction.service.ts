@@ -70,19 +70,24 @@ export class WorkflowHistoryCompactionService {
 	}
 
 	private async compactHistories(): Promise<void> {
-		const now = Date.now();
+		const compactionStartTime = Date.now();
 
 		const startDate = new Date(
-			now -
+			compactionStartTime -
 				(this.config.compactingMinimumAgeHours + this.config.compactingTimeWindowHours) *
 					Time.hours.toMilliseconds,
 		);
 		const endDate = new Date(
-			now - this.config.compactingMinimumAgeHours * Time.hours.toMilliseconds,
+			compactionStartTime - this.config.compactingMinimumAgeHours * Time.hours.toMilliseconds,
 		);
 
 		const startIso = startDate.toISOString();
 		const endIso = endDate.toISOString();
+
+		this.logger.info('Starting workflow history compaction', {
+			dateRange: { start: startIso, end: endIso },
+			config: this.config,
+		});
 
 		const workflowIds = await this.workflowHistoryRepository.getWorkflowIdsInRange(
 			startDate,
@@ -93,7 +98,10 @@ export class WorkflowHistoryCompactionService {
 			`Found ${workflowIds.length} workflows with versions between ${startDate.toISOString()} and ${endDate.toISOString()}`,
 		);
 
-		let seenSum = 0;
+		let batchSum = 0;
+		let totalSum = 0;
+		let totalDeleted = 0;
+		let errorCount = 0;
 		for (const [index, workflowId] of workflowIds.entries()) {
 			try {
 				const { seen, deleted } = await this.workflowHistoryRepository.pruneHistory(
@@ -101,18 +109,24 @@ export class WorkflowHistoryCompactionService {
 					startDate,
 					endDate,
 				);
-				seenSum += seen;
+				batchSum += seen;
+				totalSum += seen;
+				totalDeleted += deleted;
 
 				this.logger.debug(
 					`Deleted ${deleted} of ${seen} versions of workflow ${workflowId} between ${startIso} and ${endIso}`,
 				);
 			} catch (error) {
+				errorCount += 1;
 				this.logger.error(`Failed to prune version history of workflow ${workflowId}`, {
 					error: ensureError(error),
 				});
+
+				// Sleep after error to back off
+				await sleep(this.config.batchDelayMs);
 			}
 
-			if (seenSum > this.config.batchSize) {
+			if (batchSum > this.config.batchSize) {
 				this.logger.warn(
 					`Encountered more than ${this.config.batchSize} workflow versions, waiting ${this.config.batchDelayMs * Time.milliseconds.toSeconds} second(s) before continuing.`,
 				);
@@ -120,8 +134,18 @@ export class WorkflowHistoryCompactionService {
 					`Compacted ${index} of ${workflowIds.length} workflows with versions between ${startIso} and ${endIso}`,
 				);
 				await sleep(this.config.batchDelayMs);
-				seenSum = 0;
+				batchSum = 0;
 			}
 		}
+
+		const compactionDuration = Date.now() - compactionStartTime;
+		this.logger.info('Workflow history compaction complete', {
+			workflowsProcessed: workflowIds.length,
+			totalVersionsSeen: totalSum,
+			totalVersionsDeleted: totalDeleted,
+			errorCount,
+			durationMs: compactionDuration,
+			dateRange: { start: startIso, end: endIso },
+		});
 	}
 }
