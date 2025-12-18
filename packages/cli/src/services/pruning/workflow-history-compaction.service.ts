@@ -1,4 +1,5 @@
 import { Logger } from '@n8n/backend-common';
+import { WorkflowHistoryCompactionConfig } from '@n8n/config';
 import { Time } from '@n8n/constants';
 import { DbConnection, WorkflowHistoryRepository } from '@n8n/db';
 import { OnLeaderStepdown, OnLeaderTakeover, OnShutdown } from '@n8n/decorators';
@@ -14,19 +15,10 @@ import { strict } from 'node:assert';
 export class WorkflowHistoryCompactionService {
 	private compactingInterval: NodeJS.Timeout | undefined;
 
-	private readonly minimumCompactAgeHours = 24;
-	private readonly compactingTimeRangeHours = 1;
-
-	private readonly batchSize = 1_000;
-	private readonly batchDelayMs = 1_000;
-
-	private readonly rates = {
-		compacting: this.compactingTimeRangeHours * Time.hours.toMilliseconds,
-	};
-
 	private isShuttingDown = false;
 
 	constructor(
+		private readonly config: WorkflowHistoryCompactionConfig,
 		private readonly logger: Logger,
 		private readonly instanceSettings: InstanceSettings,
 		private readonly dbConnection: DbConnection,
@@ -64,7 +56,8 @@ export class WorkflowHistoryCompactionService {
 		this.logger.debug('Stopped compacting workflow histories');
 	}
 
-	private scheduleRollingCompacting(rateMs = this.rates.compacting) {
+	private scheduleRollingCompacting() {
+		const rateMs = this.config.compactingTimeWindowHours * Time.hours.toMilliseconds;
 		this.compactingInterval = setInterval(async () => await this.compactHistories(), rateMs);
 
 		this.logger.debug(`Compacting histories every ${rateMs * Time.milliseconds.toHours} hour(s)`);
@@ -81,9 +74,12 @@ export class WorkflowHistoryCompactionService {
 
 		const startDate = new Date(
 			now -
-				(this.minimumCompactAgeHours + this.compactingTimeRangeHours) * Time.hours.toMilliseconds,
+				(this.config.compactingMinimumAgeHours + this.config.compactingTimeWindowHours) *
+					Time.hours.toMilliseconds,
 		);
-		const endDate = new Date(now - this.minimumCompactAgeHours * Time.hours.toMilliseconds);
+		const endDate = new Date(
+			now - this.config.compactingMinimumAgeHours * Time.hours.toMilliseconds,
+		);
 
 		const startIso = startDate.toISOString();
 		const endIso = endDate.toISOString();
@@ -116,14 +112,14 @@ export class WorkflowHistoryCompactionService {
 				});
 			}
 
-			if (seenSum > this.batchSize) {
+			if (seenSum > this.config.batchSize) {
 				this.logger.warn(
-					`Encountered more than ${this.batchSize} workflow versions, waiting ${this.batchDelayMs * Time.milliseconds.toSeconds} second(s) before continuing.`,
+					`Encountered more than ${this.config.batchSize} workflow versions, waiting ${this.config.batchDelayMs * Time.milliseconds.toSeconds} second(s) before continuing.`,
 				);
 				this.logger.warn(
 					`Compacted ${index} of ${workflowIds.length} workflows with versions between ${startIso} and ${endIso}`,
 				);
-				await sleep(this.batchDelayMs);
+				await sleep(this.config.batchDelayMs);
 				seenSum = 0;
 			}
 		}

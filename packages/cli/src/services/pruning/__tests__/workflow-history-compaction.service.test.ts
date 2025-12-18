@@ -4,15 +4,23 @@ import { mock } from 'jest-mock-extended';
 import type { InstanceSettings } from 'n8n-core';
 
 import { WorkflowHistoryCompactionService } from '../workflow-history-compaction.service';
+import { WorkflowHistoryCompactionConfig } from '@n8n/config';
 
 describe('WorkflowHistoryCompactionService', () => {
 	const dbConnection = mock<DbConnection>({
 		connectionState: { migrated: true },
 	});
+	const config = mock<WorkflowHistoryCompactionConfig>({
+		batchDelayMs: 1000,
+		batchSize: 1000,
+		compactingMinimumAgeHours: 24,
+		compactingTimeWindowHours: 1,
+	});
 
 	describe('init', () => {
 		it('should start compacting on main instance that is the leader', () => {
 			const compactingService = new WorkflowHistoryCompactionService(
+				config,
 				mockLogger(),
 				mock<InstanceSettings>({ isLeader: true, isMultiMain: true }),
 				dbConnection,
@@ -27,6 +35,7 @@ describe('WorkflowHistoryCompactionService', () => {
 
 		it('should not start pruning on main instance that is a follower', () => {
 			const compactingService = new WorkflowHistoryCompactionService(
+				config,
 				mockLogger(),
 				mock<InstanceSettings>({ isLeader: false, isMultiMain: true }),
 				dbConnection,
@@ -41,8 +50,9 @@ describe('WorkflowHistoryCompactionService', () => {
 	});
 
 	describe('startCompacting', () => {
-		it('should start pruning if service is enabled and DB is migrated', () => {
+		it('should start compacting if service is enabled and DB is migrated', () => {
 			const compactingService = new WorkflowHistoryCompactionService(
+				config,
 				mockLogger(),
 				mock<InstanceSettings>({ isLeader: true, instanceType: 'main', isMultiMain: true }),
 				dbConnection,

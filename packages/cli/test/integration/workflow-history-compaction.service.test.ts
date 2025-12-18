@@ -8,6 +8,7 @@ import { sleep, type INode } from 'n8n-workflow';
 import { v4 as uuid } from 'uuid';
 
 import { WorkflowHistoryCompactionService } from '@/services/pruning/workflow-history-compaction.service';
+import { GlobalConfig } from '@n8n/config';
 
 describe('compacting cycle', () => {
 	let compactionService: WorkflowHistoryCompactionService;
@@ -48,17 +49,18 @@ describe('compacting cycle', () => {
 
 	beforeAll(async () => {
 		await testDb.init();
+	});
+
+	beforeEach(async () => {
+		await testDb.truncate(['WorkflowEntity', 'WorkflowHistory', 'WorkflowPublishHistory']);
 
 		compactionService = new WorkflowHistoryCompactionService(
+			Container.get(GlobalConfig).workflowHistoryCompaction,
 			mockLogger(),
 			instanceSettings,
 			Container.get(DbConnection),
 			Container.get(WorkflowHistoryRepository),
 		);
-	});
-
-	beforeEach(async () => {
-		await testDb.truncate(['WorkflowEntity', 'WorkflowHistory', 'WorkflowPublishHistory']);
 	});
 
 	afterAll(async () => {
@@ -180,10 +182,17 @@ describe('compacting cycle', () => {
 		}
 
 		// ACT
-		// @ts-expect-error assigning private property
-		compactionService['batchDelayMs'] = 10_000;
-		// @ts-expect-error assigning private property
-		compactionService['batchSize'] = 5;
+		compactionService = new WorkflowHistoryCompactionService(
+			{
+				...Container.get(GlobalConfig).workflowHistoryCompaction,
+				batchDelayMs: 10_000,
+				batchSize: 5,
+			},
+			mockLogger(),
+			instanceSettings,
+			Container.get(DbConnection),
+			Container.get(WorkflowHistoryRepository),
+		);
 
 		// Expect wf1 and wf2 to be handled in the first batch, with wf3 untouched due to the long delay after batching
 		void compactionService['compactHistories']();
