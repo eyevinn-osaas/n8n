@@ -50,4 +50,5 @@ if [ ! -z "$OSC_HOSTNAME" ]; then
     export N8N_HOST="$OSC_HOSTNAME"
     export N8N_PROXY_HOPS=1
 fi
+
 exec "/docker-entrypoint.sh" "$@"
